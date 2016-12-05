@@ -1363,6 +1363,9 @@ int chkmode(ino_t ino, d_inode *ip)
       case I_REGULAR:
 	nregular++;
 	return chkfile(ino, ip);
+      case I_IMMEDIATE:
+  nimmediate++;
+  return chkfile(ino,ip);
       case I_DIRECTORY:
 	ndirectory++;
 	return chkdirectory(ino, ip);

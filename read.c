@@ -9,7 +9,6 @@
 #include "super.h"
 #include <minix/vfsif.h>
 #include <assert.h>
-#include <math.h>
 
 
 FORWARD _PROTOTYPE( struct buf *rahead, (struct inode *rip, block_t baseblock,
@@ -86,21 +85,27 @@ PUBLIC int fs_readwrite(void)
 
 
   if (immediate) {
-	printf("immediate\n");
-	printf("nrbytes = %d\n", nrbytes);
     if (rw_flag == WRITING) {
-	  if ((position * 4 + nrbytes) > 40) {
-		  printf("mfs/read.c: unable to write to immediate file\n");
-		  return -1;
-	  }
+  	  if ((position + nrbytes) > 40) {
+  		  return(EFBIG);
+  	  }
       r = rw_imm(rip, position, nrbytes, rw_flag, gid, cum_io);
       if (r == OK) {
-        cum_io += nrbytes;
-        position += ceil(nrbytes/4.0);
+        cum_io = nrbytes;
+        position += nrbytes;
         nrbytes = 0;
       }
     } else {
-		r = rw_imm(rip, 0, position * 4, rw_flag, gid, cum_io);
+      if (position + nrbytes > f_size) nrbytes = f_size - position;
+      if (nrbytes != 0) {
+  		  r = rw_imm(rip, position, nrbytes, rw_flag, gid, cum_io);
+        if (r == OK) {
+          cum_io = min(nrbytes, f_size - position);
+          position = min(nrbytes + position, 40);
+          if (position >= f_size) position = f_size;
+          nrbytes = 0;
+        }
+      }
     }
   }
   else {
@@ -134,8 +139,8 @@ PUBLIC int fs_readwrite(void)
 
   /* On write, update file size and access time. */
   if (rw_flag == WRITING) {
-	  if (regular || mode_word == I_DIRECTORY) {
-		  if (position > f_size) rip->i_size = position;
+	  if (regular || immediate || mode_word == I_DIRECTORY) {
+		  if (position > f_size || immediate) rip->i_size = position;
 	  }
   }
 
@@ -327,22 +332,14 @@ unsigned buf_off;
 {
   int r = OK;
 
-  printf(" HEY WE IN DAT BOI RW IMM\n");
-  if (rw_flag == READING) {
-	  printf("MFS: izone char %c \n", *((char*)rip->i_zone));
-    r = sys_safecopyto(VFS_PROC_NR, gid, (vir_bytes) buf_off,
-      (vir_bytes) (rip->i_zone + off), (size_t) chunk, D);
-
-  } else {
-
-
-    r = sys_safecopyfrom(VFS_PROC_NR, gid, (vir_bytes) buf_off,
-      (vir_bytes) (rip->i_zone + off), (size_t) chunk, D);
-    printf("MFS: izone char %c \n", *((char*)rip->i_zone));
+  if (rw_flag == WRITING) {
+	  r = sys_safecopyfrom(VFS_PROC_NR, gid, (vir_bytes) buf_off,
+      (vir_bytes) ((char*)(rip->i_zone) + off), (size_t) chunk, D);
     rip->i_dirt = DIRTY;
+  } else {
+    r = sys_safecopyto(VFS_PROC_NR, gid, (vir_bytes) buf_off,
+      (vir_bytes) ((char*)(rip->i_zone) + off), (size_t) chunk, D);
   }
-
-  printf("MFS: in RW_imm r is: %d\n", r);
 
   return(r);
 }

@@ -1,0 +1,14 @@
+FILES CHANGED:
+1. /usr/src/include/minix/const.h -> I_IMMEDIATE added
+2. /usr/src/servers/vfs/open.c
+3. /usr/src/include/fcntl.h -> O_IMM added
+4. /usr/src/servers/mfs/read.c
+5. /usr/src/commands/stat/stat.c
+6. /usr/src/commands/ls/ls.c
+7. /usr/src/include/sys/stat.h
+8. /usr/src/commands/fsck.mfs/fsck.c
+
+
+/usr/src/servers/vfs/open.c -> common_open calls truncate_vnode ---- do we need to modify this?
+
+need to edit rw_chunk to handle immediate files next

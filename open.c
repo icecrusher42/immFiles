@@ -97,7 +97,6 @@ PRIVATE int common_open(register int oflags, mode_t omode)
   if (oflags & O_CREAT) {
   	if (oflags & O_IMM) {
   		omode = I_IMMEDIATE | (omode & ALL_MODES & fp->fp_umask);
-        printf("in omode\n");
   	} else {
         omode = I_REGULAR | (omode & ALL_MODES & fp->fp_umask);
   	}
